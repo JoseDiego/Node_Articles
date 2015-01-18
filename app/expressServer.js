@@ -1,6 +1,9 @@
-var express = require('express'),
+var env = process.env.NODE_ENV || 'production',
+	express = require('express'),
 	middlewares =  require('./middlewares/admin'),
-	swig = require('swig');
+	bodyParser = require('body-parser'),
+	swig = require('swig'),
+	router = require('./website/router');
 
 var ExpressServer = function(config){
 	
@@ -9,6 +12,9 @@ var ExpressServer = function(config){
 	this.expressServer = express();
 
 	//middlewares
+
+	this.expressServer.use(bodyParser.urlencoded({extended: true}))
+
 	for(var middleware in middlewares){
 		this.expressServer.use(middlewares[middleware]);
 	}
@@ -18,28 +24,51 @@ var ExpressServer = function(config){
     this.expressServer.set('views', __dirname + '/website/views/templates');
     swig.setDefaults({varControls:['[[',']]']});
 
-	this.expressServer.get('/article/save/', function(req,res,next){
-		res.render('article_save',{nombre: 'JoseDiego'});
-	});
+    if(env == 'development'){
+    	console.log('development');
+    	this.expressServer.set('view cache', false);
+    	swig.setDefaults({cache: false, varControls:['[[',']]']});
+    }
+    for(var controller in router){
+    	for(var prototype in router[controller].prototype){
+    		var method = prototype.split('_')[0];
+    		var action = prototype.split('_')[1];
+    		var data = prototype.split('_')[2];
+    		data = (method == 'get' && data != undefined) ? ':data' : '';
+    		var url = '/' + controller + '/' + action + '/' + data ;
+    		console.log(url);
+    		this.router(controller,prototype,method,url);
+    	}
+    }
+    this.expressServer.use(function(req,res,next){
+    	res.status(404);
 
-	this.expressServer.get('/article/remove/', function(req,res,next){
-	    res.send('Hello from article remove');
-	});
+		if (req.accepts('html')) {
+		  res.render('404', { url: req.url });
+		  return;
+		}
 
-	this.expressServer.get('/article/add/', function(req,res,next){
-	    res.send('Hello from article add');
-	});
+		// respond with json
+		if (req.accepts('json')) {
+		  res.send({ error: 'Not found' });
+		  return;
+		}
 
-	this.expressServer.get('/article/see/:data', function(req,res,next){
-	    res.send('Hello from article see');
-	});
+		  // default to plain-text. send()
+		res.type('txt').send('Not found');
+    });
+};
 
-	this.expressServer.get('/article/edit/:data', function(req,res,next){
-	    res.send('Hello from article edit');
-	});
-
-	this.expressServer.get('/article/list/', function(req,res,next){
-	    res.send('Hello from article list');
+ExpressServer.prototype.router = function(controller,prototype,method,url) {
+	this.expressServer[method](url, function(req,res,next){
+		var conf = {
+			'prototype': prototype,
+			'req': req,
+			'res': res,
+			'next': next
+		}
+		var Controller = new router[controller](conf);
+		Controller.response();
 	});
 };
 

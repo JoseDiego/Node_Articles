@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}
+   - Lista de Articulos
+{% endblock %}
+
+
+{% block content %}
+	<h2>Lista de Articulos</h2>
+	<ul>
+		{% for article in articles %}
+			<li {% if loop.first %} style="color:red" {% endif %} >[[ article ]]</li>
+		{% endfor %}
+	</ul>
+	<script type="text/javascript">
+		var socket = io.connect("http://localhost:3000/");
+		socket.on('mejorandola',function(data){
+			console.log(data);
+			socket.emit('mejorandolo', {hola : 'yo tambien soy mejorandolo'} )
+		});
+	</script>
+{% endblock %}

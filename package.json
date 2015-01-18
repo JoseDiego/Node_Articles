@@ -2,8 +2,11 @@
   "name": "Articles",
   "version": "0.0.1",
   "dependencies": {
+    "body-parser": "^1.10.1",
     "express": "4.9.8",
+    "mongoose": "^3.8.21",
     "serve-favicon": "^2.2.0",
+    "socket.io": "^1.2.1",
     "swig": "^1.4.2"
   }
 }

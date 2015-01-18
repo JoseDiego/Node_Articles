@@ -1,8 +1,22 @@
-var http = require('http'),
-	conf = require('./conf')
-	expressServer = require('./app/expressServer');
-var app = new expressServer();
+var cluster = require('cluster');
+if (cluster.isMaster){
+	var Master = require('./master');
+	var master = new Master({cluster:cluster});
 
-var server = http.createServer(app.expressServer);
-server.listen(conf.port);
-console.log("Running at http://localhost:3000");
+	var cpuCount = require('os').cpus().length;
+
+	for(var i = 0; i< cpuCount; i++){
+		master.createWorker();
+	}
+	cluster.on('exit', function(worker){
+		console.log('worker : ' + worker.id + ' died');
+		master.onWorkerExit();
+	})
+}else{
+	var Workers = require('./workers');
+	var workers = new Workers();
+	
+	workers.run();
+
+	console.log('worker ' + cluster.worker.id + '  running!');
+}
